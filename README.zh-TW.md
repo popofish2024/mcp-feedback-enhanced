@@ -1,4 +1,4 @@
-# Interactive Feedback MCP（互動回饋 MCP）
+# MCP Feedback Enhanced（互動回饋 MCP）
 
 **🌐 語言切換 / Language:** [English](README.md) | **繁體中文** | [简体中文](README.zh-CN.md)
 
@@ -46,16 +46,16 @@
 
 ### Qt GUI 介面（重構版）
 <div align="center">
-  <img src="docs/images/zh-TW/gui1.png" width="400" alt="Qt GUI 主介面" />
-  <img src="docs/images/zh-TW/gui2.png" width="400" alt="Qt GUI 設定介面" />
+  <img src="docs/zh-TW/images/gui1.png" width="400" alt="Qt GUI 主介面" />
+  <img src="docs/zh-TW/images/gui2.png" width="400" alt="Qt GUI 設定介面" />
 </div>
 
 *Qt GUI 介面 - 模組化重構，支援本地環境*
 
 ### Web UI 介面（重構版）
 <div align="center">
-  <img src="docs/images/zh-TW/web1.png" width="400" alt="Web UI 主介面" />
-  <img src="docs/images/zh-TW/web2.png" width="400" alt="Web UI 設定介面" />
+  <img src="docs/zh-TW/images/web1.png" width="400" alt="Web UI 主介面" />
+  <img src="docs/zh-TW/images/web2.png" width="400" alt="Web UI 設定介面" />
 </div>
 
 *Web UI 介面 - 全新架構，適合 SSH Remote 環境*
@@ -118,6 +118,7 @@ uvx mcp-feedback-enhanced@latest test
 2. 每當收到使用者回饋，若回饋內容非空，必須再次呼叫 MCP mcp-feedback-enhanced，並根據回饋內容調整行為。
 3. 僅當使用者明確表示「結束」或「不再需要互動」時，才可停止呼叫 MCP mcp-feedback-enhanced，流程才算結束。
 4. 除非收到結束指令，否則所有步驟都必須重複呼叫 MCP mcp-feedback-enhanced。
+5. 完成任務前，必須使用 MCP mcp-feedback-enhanced 工具向使用者詢問回饋。
 ```
 
 ## ⚙️ 進階設定
@@ -127,7 +128,6 @@ uvx mcp-feedback-enhanced@latest test
 |------|------|-----|------|
 | `FORCE_WEB` | 強制使用 Web UI | `true`/`false` | `false` |
 | `MCP_DEBUG` | 調試模式 | `true`/`false` | `false` |
-| `INCLUDE_BASE64_DETAIL` | 圖片完整 Base64 | `true`/`false` | `false` |
 
 ### 測試選項
 ```bash
@@ -168,33 +168,14 @@ uvx --with-editable . mcp-feedback-enhanced test --web    # 測試 Web UI (自�
 - **Qt GUI 測試**：快速啟動並測試本地圖形界面
 - **Web UI 測試**：啟動 Web 服務器並保持運行，便於完整測試 Web 功能
 
-## 🆕 版本亮點
+## 🆕 版本更新記錄
 
-### v2.1.0（最新重構版）
-- 🎨 **全面重構**：GUI 和 Web UI 採用模組化架構
-- 📁 **集中管理**：重新組織資料夾結構，提升維護性
-- 🖥️ **界面優化**：現代化設計和改進的用戶體驗
-- 🍎 **macOS 介面優化**：針對 macOS 用戶體驗進行專項改進
-- ⚙️ **功能增強**：新增設定選項和自動關閉頁面功能
-- 🌐 **語言切換**：修復 Web UI 語言切換時內容更新問題
-- ℹ️ **About 頁面**：新增關於頁面，包含版本資訊、專案連結和致謝內容
+📋 **完整版本更新記錄：** [RELEASE_NOTES/CHANGELOG.zh-TW.md](RELEASE_NOTES/CHANGELOG.zh-TW.md)
 
-### v2.0.14
-- ⌨️ 增強快捷鍵：Ctrl+Enter 支援數字鍵盤
-- 🖼️ 智能圖片貼上：Ctrl+V 直接貼上剪貼板圖片
-
-### v2.0.9
-- 🌏 多語言架構重構，支援動態載入
-- 📁 語言檔案模組化組織
-
-### v2.0.3
-- 🛡️ 完全修復中文字符編碼問題
-- 🔧 解決 JSON 解析錯誤
-
-### v2.0.0
-- ✅ 新增 Web UI 支援遠端環境
-- ✅ 自動環境檢測與介面選擇
-- ✅ WebSocket 即時通訊
+### 最新版本亮點（v2.2.2）
+- 🔄 **超時自動清理**: 修復 GUI/Web UI 在 MCP session timeout 後沒有自動關閉的問題
+- 🛡️ **資源管理優化**: 改進超時處理機制，確保正確清理所有 UI 資源  
+- 🎯 **QTimer 整合**: 在 GUI 中引入精確的 QTimer 超時控制機制
 
 ## 🐛 常見問題
 
@@ -204,14 +185,40 @@ A: 調試輸出干擾。設置 `MCP_DEBUG=false` 或移除該環境變數。
 **Q: 中文字符亂碼**  
 A: 已在 v2.0.3 修復。更新到最新版本：`uvx mcp-feedback-enhanced@latest`
 
+**Q: 多螢幕環境下視窗消失或定位錯誤**  
+A: 已在 v2.1.1 修復。進入「⚙️ 設定」分頁，勾選「總是在主螢幕中心顯示視窗」即可解決。特別適用於 T 字型螢幕排列等複雜多螢幕配置。
+
 **Q: 圖片上傳失敗**  
 A: 檢查檔案大小（≤1MB）和格式（PNG/JPG/GIF/BMP/WebP）。
 
-**Q: Web UI 無法啟動**  
+**Q: Web UI 無法啟動**
 A: 設置 `FORCE_WEB=true` 或檢查防火牆設定。
 
-**Q: Gemini Pro 2.5 無法解析圖片**  
-A: 已知問題，Gemini Pro 2.5 可能無法正確解析上傳的圖片內容。實測 Claude-4-Sonnet 可以正常解析圖片。建議使用 Claude 模型獲得更好的圖片理解能力。
+**Q: UV Cache 佔用過多磁碟空間**
+A: 由於頻繁使用 `uvx` 命令，cache 可能會累積到數十 GB。建議定期清理：
+```bash
+# 查看 cache 大小和詳細資訊
+python scripts/cleanup_cache.py --size
+
+# 預覽清理內容（不實際清理）
+python scripts/cleanup_cache.py --dry-run
+
+# 執行標準清理
+python scripts/cleanup_cache.py --clean
+
+# 強制清理（會嘗試關閉相關程序，解決 Windows 檔案佔用問題）
+python scripts/cleanup_cache.py --force
+
+# 或直接使用 uv 命令
+uv cache clean
+```
+詳細說明請參考：[Cache 管理指南](docs/zh-TW/cache-management.md)
+
+**Q: AI 模型無法解析圖片**  
+A: 各種 AI 模型（包括 Gemini Pro 2.5、Claude 等）在圖片解析上可能存在不穩定性，表現為有時能正確識別、有時無法解析上傳的圖片內容。這是 AI 視覺理解技術的已知限制。建議：
+1. 確保圖片品質良好（高對比度、清晰文字）
+2. 多嘗試幾次上傳，通常重試可以成功
+3. 如持續無法解析，可嘗試調整圖片大小或格式
 
 ## 🙏 致謝
 

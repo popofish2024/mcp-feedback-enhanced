@@ -1,4 +1,4 @@
-# Interactive Feedback MCP
+# MCP Feedback Enhanced
 
 **🌐 Language / 語言切換:** **English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
@@ -46,16 +46,16 @@ This is an [MCP server](https://modelcontextprotocol.io/) that implements **huma
 
 ### Qt GUI Interface (Refactored Version)
 <div align="center">
-  <img src="docs/images/en/gui1.png" width="400" alt="Qt GUI Main Interface" />
-  <img src="docs/images/en/gui2.png" width="400" alt="Qt GUI Settings Interface" />
+  <img src="docs/en/images/gui1.png" width="400" alt="Qt GUI Main Interface" />
+  <img src="docs/en/images/gui2.png" width="400" alt="Qt GUI Settings Interface" />
 </div>
 
 *Qt GUI Interface - Modular refactoring, supporting local environments*
 
 ### Web UI Interface (Refactored Version)
 <div align="center">
-  <img src="docs/images/en/web1.png" width="400" alt="Web UI Main Interface" />
-  <img src="docs/images/en/web2.png" width="400" alt="Web UI Settings Interface" />
+  <img src="docs/en/images/web1.png" width="400" alt="Web UI Main Interface" />
+  <img src="docs/en/images/web2.png" width="400" alt="Web UI Settings Interface" />
 </div>
 
 *Web UI Interface - Brand new architecture, suitable for SSH Remote environments*
@@ -118,6 +118,7 @@ For best results, add these rules to your AI assistant:
 2. When receiving user feedback, if feedback content is not empty, must call MCP mcp-feedback-enhanced again and adjust behavior based on feedback.
 3. Only when user explicitly indicates "end" or "no more interaction needed" can you stop calling MCP mcp-feedback-enhanced, then the process is complete.
 4. Unless receiving end command, all steps must repeatedly call MCP mcp-feedback-enhanced.
+5. Before completing the task, use the MCP mcp-feedback-enhanced to ask the user for feedback.
 ```
 
 ## ⚙️ Advanced Settings
@@ -127,7 +128,6 @@ For best results, add these rules to your AI assistant:
 |----------|---------|--------|---------|
 | `FORCE_WEB` | Force use Web UI | `true`/`false` | `false` |
 | `MCP_DEBUG` | Debug mode | `true`/`false` | `false` |
-| `INCLUDE_BASE64_DETAIL` | Full Base64 for images | `true`/`false` | `false` |
 
 ### Testing Options
 ```bash
@@ -168,33 +168,14 @@ uvx --with-editable . mcp-feedback-enhanced test --web    # Test Web UI (auto co
 - **Qt GUI Test**: Quick launch and test of local graphical interface
 - **Web UI Test**: Start Web server and keep running for complete Web functionality testing
 
-## 🆕 Version Highlights
+## 🆕 Version History
 
-### v2.1.0 (Latest Refactored Version)
-- 🎨 **Complete Refactoring**: GUI and Web UI adopt modular architecture
-- 📁 **Centralized Management**: Reorganized folder structure, improved maintainability
-- 🖥️ **Interface Optimization**: Modern design and improved user experience
-- 🍎 **macOS Interface Optimization**: Specialized improvements for macOS user experience
-- ⚙️ **Feature Enhancement**: New settings options and auto-close page functionality
-- 🌐 **Language Switching**: Fixed Web UI content update issues when switching languages
-- ℹ️ **About Page**: Added about page with version info, project links, and acknowledgments
+📋 **Complete Version History:** [RELEASE_NOTES/CHANGELOG.en.md](RELEASE_NOTES/CHANGELOG.en.md)
 
-### v2.0.14
-- ⌨️ Enhanced Shortcuts: Ctrl+Enter supports numpad
-- 🖼️ Smart Image Pasting: Ctrl+V directly pastes clipboard images
-
-### v2.0.9
-- 🌏 Multi-language architecture refactor with dynamic loading
-- 📁 Modularized language file organization
-
-### v2.0.3
-- 🛡️ Complete fix for Chinese character encoding issues
-- 🔧 Resolved JSON parsing errors
-
-### v2.0.0
-- ✅ Added Web UI support for remote environments
-- ✅ Auto environment detection and interface selection
-- ✅ WebSocket real-time communication
+### Latest Version Highlights (v2.2.2)
+- 🔄 **Timeout Auto-cleanup**: Fixed GUI/Web UI not automatically closing after MCP session timeout
+- 🛡️ **Resource Management Optimization**: Improved timeout handling mechanism to ensure proper cleanup of all UI resources  
+- 🎯 **QTimer Integration**: Introduced precise QTimer timeout control mechanism in GUI
 
 ## 🐛 Common Issues
 
@@ -207,11 +188,34 @@ A: Fixed in v2.0.3. Update to latest version: `uvx mcp-feedback-enhanced@latest`
 **Q: Image upload fails**  
 A: Check file size (≤1MB) and format (PNG/JPG/GIF/BMP/WebP).
 
-**Q: Web UI won't start**  
+**Q: Web UI won't start**
 A: Set `FORCE_WEB=true` or check firewall settings.
+
+**Q: UV Cache taking up too much disk space**
+A: Due to frequent use of `uvx` commands, cache may accumulate to tens of GB. Regular cleanup is recommended:
+```bash
+# Check cache size and detailed information
+python scripts/cleanup_cache.py --size
+
+# Preview cleanup content (without actually cleaning)
+python scripts/cleanup_cache.py --dry-run
+
+# Execute standard cleanup
+python scripts/cleanup_cache.py --clean
+
+# Force cleanup (attempts to close related processes, solves Windows file lock issues)
+python scripts/cleanup_cache.py --force
+
+# Or use uv command directly
+uv cache clean
+```
+For detailed instructions, see: [Cache Management Guide](docs/en/cache-management.md)
 
 **Q: Gemini Pro 2.5 cannot parse images**  
 A: Known issue. Gemini Pro 2.5 may not correctly parse uploaded image content. Testing shows Claude-4-Sonnet can properly analyze images. Recommend using Claude models for better image understanding capabilities.
+
+**Q: Multi-screen window positioning issues**  
+A: Fixed in v2.1.1. Go to "⚙️ Settings" tab, check "Always show window at primary screen center" to resolve window positioning issues. Especially useful for T-shaped screen arrangements and other complex multi-monitor configurations.
 
 ## 🙏 Acknowledgments
 

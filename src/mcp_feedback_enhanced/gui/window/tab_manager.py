@@ -21,11 +21,12 @@ from .config_manager import ConfigManager
 class TabManager:
     """分頁管理器"""
     
-    def __init__(self, tab_widget: QTabWidget, project_dir: str, summary: str, combined_mode: bool):
+    def __init__(self, tab_widget: QTabWidget, project_dir: str, summary: str, combined_mode: bool, layout_orientation: str = 'vertical'):
         self.tab_widget = tab_widget
         self.project_dir = project_dir
         self.summary = summary
         self.combined_mode = combined_mode
+        self.layout_orientation = layout_orientation
         
         # 配置管理器
         self.config_manager = ConfigManager()
@@ -60,14 +61,15 @@ class TabManager:
         self.tab_widget.addTab(self.command_tab, t('tabs.command'))
         
         # 設置分頁
-        self.settings_tab = SettingsTab(self.combined_mode)
+        self.settings_tab = SettingsTab(self.combined_mode, self.config_manager)
+        self.settings_tab.set_layout_orientation(self.layout_orientation)
         self.tab_widget.addTab(self.settings_tab, t('tabs.language'))
         
         # 關於分頁
         self.about_tab = AboutTab()
         self.tab_widget.addTab(self.about_tab, t('tabs.about'))
         
-        debug_log(f"分頁創建完成，模式: {'合併' if self.combined_mode else '分離'}")
+        debug_log(f"分頁創建完成，模式: {'合併' if self.combined_mode else '分離'}，方向: {self.layout_orientation}")
     
     def _create_combined_feedback_tab(self) -> None:
         """創建合併模式的回饋分頁（包含AI摘要）"""
@@ -84,8 +86,9 @@ class TabManager:
         splitter_wrapper_layout.setContentsMargins(16, 16, 16, 0)  # 恢復左右邊距設置
         splitter_wrapper_layout.setSpacing(0)
         
-        # 使用垂直分割器管理 AI摘要、回饋輸入和圖片區域
-        main_splitter = QSplitter(Qt.Vertical)
+        # 根據布局方向創建分割器
+        orientation = Qt.Horizontal if self.layout_orientation == 'horizontal' else Qt.Vertical
+        main_splitter = QSplitter(orientation)
         main_splitter.setChildrenCollapsible(False)
         main_splitter.setHandleWidth(6)
         main_splitter.setContentsMargins(0, 0, 0, 0)  # 設置分割器邊距為0
@@ -98,65 +101,127 @@ class TabManager:
             }
         """)
         
-        main_splitter.setStyleSheet("""
-            QSplitter {
-                border: none;
-                background: transparent;
-            }
-            QSplitter::handle:vertical {
-                height: 8px;
-                background-color: #3c3c3c;
-                border: 1px solid #555555;
-                border-radius: 4px;
-                margin-left: 16px;
-                margin-right: 16px;
-                margin-top: 2px;
-                margin-bottom: 2px;
-            }
-            QSplitter::handle:vertical:hover {
-                background-color: #606060;
-                border-color: #808080;
-            }
-            QSplitter::handle:vertical:pressed {
-                background-color: #007acc;
-                border-color: #005a9e;
-            }
-        """)
+        # 根據方向設置不同的分割器樣式
+        if self.layout_orientation == 'horizontal':
+            # 水平布局（左右）
+            main_splitter.setStyleSheet("""
+                QSplitter {
+                    border: none;
+                    background: transparent;
+                }
+                QSplitter::handle:horizontal {
+                    width: 8px;
+                    background-color: #3c3c3c;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                    margin-top: 16px;
+                    margin-bottom: 16px;
+                    margin-left: 2px;
+                    margin-right: 2px;
+                }
+                QSplitter::handle:horizontal:hover {
+                    background-color: #606060;
+                    border-color: #808080;
+                }
+                QSplitter::handle:horizontal:pressed {
+                    background-color: #007acc;
+                    border-color: #005a9e;
+                }
+            """)
+        else:
+            # 垂直布局（上下）
+            main_splitter.setStyleSheet("""
+                QSplitter {
+                    border: none;
+                    background: transparent;
+                }
+                QSplitter::handle:vertical {
+                    height: 8px;
+                    background-color: #3c3c3c;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                    margin-left: 16px;
+                    margin-right: 16px;
+                    margin-top: 2px;
+                    margin-bottom: 2px;
+                }
+                QSplitter::handle:vertical:hover {
+                    background-color: #606060;
+                    border-color: #808080;
+                }
+                QSplitter::handle:vertical:pressed {
+                    background-color: #007acc;
+                    border-color: #005a9e;
+                }
+            """)
         
         # 創建AI摘要組件
         self.summary_tab = SummaryTab(self.summary)
-        self.summary_tab.setMinimumHeight(150)
-        self.summary_tab.setMaximumHeight(1000)  # 允許更大的拖拽範圍
         
         # 創建回饋輸入組件
         self.feedback_tab = FeedbackTab()
-        # 確保回饋分頁有足夠的最小高度來顯示圖片區域
-        self.feedback_tab.setMinimumHeight(480)
-        self.feedback_tab.setMaximumHeight(2000)  # 允許更大的拖拽範圍
         
-        # 添加到主分割器
-        main_splitter.addWidget(self.summary_tab)
-        main_splitter.addWidget(self.feedback_tab)
-        
-        # 調整分割器比例和初始大小，確保圖片區域可見
-        main_splitter.setStretchFactor(0, 1)  # AI摘要區域
-        main_splitter.setStretchFactor(1, 2)  # 回饋輸入區域（包含圖片）- 給予更多空間
-        
-        # 從配置載入分割器位置，如果沒有則使用預設值
-        saved_sizes = self.config_manager.get_splitter_sizes('main_splitter')
-        if saved_sizes and len(saved_sizes) == 2:
-            main_splitter.setSizes(saved_sizes)
+        if self.layout_orientation == 'horizontal':
+            # 水平布局設置
+            self.summary_tab.setMinimumWidth(150)  # 降低最小寬度
+            self.summary_tab.setMaximumWidth(800)
+            self.feedback_tab.setMinimumWidth(200)  # 降低最小寬度
+            self.feedback_tab.setMaximumWidth(1200)
+            
+            # 添加到主分割器
+            main_splitter.addWidget(self.summary_tab)
+            main_splitter.addWidget(self.feedback_tab)
+            
+            # 調整分割器比例（水平布局）
+            main_splitter.setStretchFactor(0, 1)  # AI摘要區域
+            main_splitter.setStretchFactor(1, 2)  # 回饋輸入區域
+            
+            # 從配置載入分割器位置
+            saved_sizes = self.config_manager.get_splitter_sizes('main_splitter_horizontal')
+            if saved_sizes and len(saved_sizes) == 2:
+                main_splitter.setSizes(saved_sizes)
+            else:
+                main_splitter.setSizes([400, 600])  # 預設大小（水平）
+            
+            # 連接分割器位置變化信號
+            main_splitter.splitterMoved.connect(
+                lambda pos, index: self._save_splitter_position(main_splitter, 'main_splitter_horizontal')
+            )
+            
+            # 設置最小高度
+            main_splitter.setMinimumHeight(200)  # 降低水平布局最小高度
+            main_splitter.setMaximumHeight(2000)
+            
         else:
-            main_splitter.setSizes([160, 480])  # 預設大小
-        
-        # 連接分割器位置變化信號，自動保存位置
-        main_splitter.splitterMoved.connect(
-            lambda pos, index: self._save_main_splitter_position(main_splitter)
-        )
-        
-        # 設置主分割器的最小高度，確保圖片區域可見
-        main_splitter.setMinimumHeight(660)  # 進一步增加最小高度
-        main_splitter.setMaximumHeight(3000)  # 允許更大的高度以觸發滾動
+            # 垂直布局設置
+            self.summary_tab.setMinimumHeight(80)   # 降低摘要最小高度
+            self.summary_tab.setMaximumHeight(1000)
+            self.feedback_tab.setMinimumHeight(120) # 降低回饋最小高度
+            self.feedback_tab.setMaximumHeight(2000)
+            
+            # 添加到主分割器
+            main_splitter.addWidget(self.summary_tab)
+            main_splitter.addWidget(self.feedback_tab)
+            
+            # 調整分割器比例（垂直布局）
+            main_splitter.setStretchFactor(0, 1)  # AI摘要區域
+            main_splitter.setStretchFactor(1, 2)  # 回饋輸入區域
+            
+            # 從配置載入分割器位置
+            saved_sizes = self.config_manager.get_splitter_sizes('main_splitter_vertical')
+            if saved_sizes and len(saved_sizes) == 2:
+                main_splitter.setSizes(saved_sizes)
+            else:
+                main_splitter.setSizes([160, 480])  # 預設大小（垂直）
+            
+            # 連接分割器位置變化信號
+            main_splitter.splitterMoved.connect(
+                lambda pos, index: self._save_splitter_position(main_splitter, 'main_splitter_vertical')
+            )
+            
+            # 設置最小高度
+            main_splitter.setMinimumHeight(200)  # 降低垂直布局最小高度
+            main_splitter.setMaximumHeight(3000)
         
         splitter_wrapper_layout.addWidget(main_splitter)
         
@@ -168,7 +233,10 @@ class TabManager:
         
         # 設置合併分頁的大小策略，確保能夠觸發父容器的滾動條
         self.combined_feedback_tab.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.combined_feedback_tab.setMinimumHeight(700)  # 設置最小高度
+        if self.layout_orientation == 'vertical':
+            self.combined_feedback_tab.setMinimumHeight(200)  # 降低垂直布局最小高度
+        else:
+            self.combined_feedback_tab.setMinimumWidth(400)   # 降低水平布局最小寬度
     
     def update_tab_texts(self) -> None:
         """更新分頁標籤文字"""
@@ -203,18 +271,26 @@ class TabManager:
         result = {
             "interactive_feedback": "",
             "command_logs": "",
-            "images": []
+            "images": [],
+            "settings": {}
         }
-        
+
         # 獲取回饋文字和圖片
         if self.feedback_tab:
             result["interactive_feedback"] = self.feedback_tab.get_feedback_text()
             result["images"] = self.feedback_tab.get_images_data()
-        
+
         # 獲取命令日誌
         if self.command_tab:
             result["command_logs"] = self.command_tab.get_command_logs()
-        
+
+        # 獲取圖片設定
+        if self.config_manager:
+            result["settings"] = {
+                "image_size_limit": self.config_manager.get_image_size_limit(),
+                "enable_base64_detail": self.config_manager.get_enable_base64_detail()
+            }
+
         return result
     
     def restore_content(self, feedback_text: str, command_logs: str, images_data: list) -> None:
@@ -244,10 +320,15 @@ class TabManager:
         """連接信號"""
         # 連接設置分頁的信號
         if self.settings_tab:
-            if hasattr(parent, 'language_changed'):
-                self.settings_tab.language_changed.connect(parent.language_changed)
-            if hasattr(parent, '_on_layout_mode_change_requested'):
-                self.settings_tab.layout_mode_change_requested.connect(parent._on_layout_mode_change_requested)
+            # 語言變更信號直接連接到父窗口的刷新方法
+            if hasattr(parent, '_refresh_ui_texts'):
+                self.settings_tab.language_changed.connect(parent._refresh_ui_texts)
+            if hasattr(parent, '_on_layout_change_requested'):
+                self.settings_tab.layout_change_requested.connect(parent._on_layout_change_requested)
+            if hasattr(parent, '_on_reset_settings_requested'):
+                self.settings_tab.reset_requested.connect(parent._on_reset_settings_requested)
+            if hasattr(parent, '_on_timeout_settings_changed'):
+                self.settings_tab.timeout_settings_changed.connect(parent._on_timeout_settings_changed)
         
         # 連接回饋分頁的圖片貼上信號
         if self.feedback_tab:
@@ -266,9 +347,15 @@ class TabManager:
         self.combined_mode = combined_mode
         if self.settings_tab:
             self.settings_tab.set_layout_mode(combined_mode) 
+    
+    def set_layout_orientation(self, orientation: str) -> None:
+        """設置佈局方向"""
+        self.layout_orientation = orientation
+        if self.settings_tab:
+            self.settings_tab.set_layout_orientation(orientation)
 
-    def _save_main_splitter_position(self, splitter: QSplitter) -> None:
+    def _save_splitter_position(self, splitter: QSplitter, config_key: str) -> None:
         """保存分割器位置"""
         sizes = splitter.sizes()
-        self.config_manager.set_splitter_sizes('main_splitter', sizes)
+        self.config_manager.set_splitter_sizes(config_key, sizes)
         debug_log(f"分割器位置保存成功，大小: {sizes}") 

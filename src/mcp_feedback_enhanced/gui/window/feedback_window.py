@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QTabWidget, QPushButton, QMessageBox, QScrollArea, QSizePolicy
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 
 from .config_manager import ConfigManager
@@ -24,17 +24,32 @@ from ...debug import gui_debug_log as debug_log
 class FeedbackWindow(QMainWindow):
     """回饋收集主窗口（重構版）"""
     language_changed = Signal()
-    
-    def __init__(self, project_dir: str, summary: str):
+    timeout_occurred = Signal()  # 超時發生信號
+
+    def __init__(self, project_dir: str, summary: str, timeout_seconds: int = None):
         super().__init__()
         self.project_dir = project_dir
         self.summary = summary
         self.result = None
         self.i18n = get_i18n_manager()
+        self.mcp_timeout_seconds = timeout_seconds  # MCP 傳入的超時時間
         
         # 初始化組件
         self.config_manager = ConfigManager()
+        
+        # 載入保存的語言設定
+        saved_language = self.config_manager.get_language()
+        if saved_language:
+            self.i18n.set_language(saved_language)
+        
         self.combined_mode = self.config_manager.get_layout_mode()
+        self.layout_orientation = self.config_manager.get_layout_orientation()
+        
+        # 設置窗口狀態保存的防抖計時器
+        self._save_timer = QTimer()
+        self._save_timer.setSingleShot(True)
+        self._save_timer.timeout.connect(self._delayed_save_window_position)
+        self._save_delay = 500  # 500ms 延遲，避免過於頻繁的保存
         
         # 設置UI
         self._setup_ui()
@@ -42,12 +57,18 @@ class FeedbackWindow(QMainWindow):
         self._connect_signals()
         
         debug_log("主窗口初始化完成")
+
+        # 如果啟用了超時，自動開始倒數計時
+        self.start_timeout_if_enabled()
     
     def _setup_ui(self) -> None:
         """設置用戶介面"""
         self.setWindowTitle(t('app.title'))
-        self.setMinimumSize(1000, 800)
+        self.setMinimumSize(400, 300)  # 大幅降低最小窗口大小限制，允許用戶自由調整
         self.resize(1200, 900)
+        
+        # 智能視窗定位
+        self._apply_window_positioning()
         
         # 中央元件
         central_widget = QWidget()
@@ -72,9 +93,72 @@ class FeedbackWindow(QMainWindow):
     
     def _create_project_header(self, layout: QVBoxLayout) -> None:
         """創建專案目錄頭部信息"""
+        # 創建水平布局來放置專案目錄和倒數計時器
+        header_layout = QHBoxLayout()
+
         self.project_label = QLabel(f"{t('app.projectDirectory')}: {self.project_dir}")
         self.project_label.setStyleSheet("color: #9e9e9e; font-size: 12px; padding: 4px 0;")
-        layout.addWidget(self.project_label)
+        header_layout.addWidget(self.project_label)
+
+        # 添加彈性空間
+        header_layout.addStretch()
+
+        # 添加倒數計時器顯示（僅顯示部分）
+        self._create_countdown_display(header_layout)
+
+        # 將水平布局添加到主布局
+        header_widget = QWidget()
+        header_widget.setLayout(header_layout)
+        layout.addWidget(header_widget)
+
+    def _create_countdown_display(self, layout: QHBoxLayout) -> None:
+        """創建倒數計時器顯示組件（僅顯示）"""
+        # 倒數計時器標籤
+        self.countdown_label = QLabel(t('timeout.remaining'))
+        self.countdown_label.setStyleSheet("color: #cccccc; font-size: 12px;")
+        self.countdown_label.setVisible(False)  # 預設隱藏
+        layout.addWidget(self.countdown_label)
+
+        # 倒數計時器顯示
+        self.countdown_display = QLabel("--:--")
+        self.countdown_display.setStyleSheet("""
+            color: #ffa500;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Consolas', 'Monaco', monospace;
+            min-width: 50px;
+            margin-left: 8px;
+        """)
+        self.countdown_display.setVisible(False)  # 預設隱藏
+        layout.addWidget(self.countdown_display)
+
+        # 初始化超時控制邏輯
+        self._init_timeout_logic()
+
+    def _init_timeout_logic(self) -> None:
+        """初始化超時控制邏輯"""
+        # 載入保存的超時設置
+        timeout_enabled, timeout_duration = self.config_manager.get_timeout_settings()
+
+        # 如果有 MCP 超時參數，且用戶設置的時間大於 MCP 時間，則使用 MCP 時間
+        if self.mcp_timeout_seconds is not None:
+            if timeout_duration > self.mcp_timeout_seconds:
+                timeout_duration = self.mcp_timeout_seconds
+                debug_log(f"用戶設置的超時時間 ({timeout_duration}s) 大於 MCP 超時時間 ({self.mcp_timeout_seconds}s)，使用 MCP 時間")
+
+        # 保存超時設置
+        self.timeout_enabled = timeout_enabled
+        self.timeout_duration = timeout_duration
+        self.remaining_seconds = 0
+
+        # 創建計時器
+        self.countdown_timer = QTimer()
+        self.countdown_timer.timeout.connect(self._update_countdown)
+
+        # 更新顯示狀態
+        self._update_countdown_visibility()
+
+
     
     def _create_tab_area(self, layout: QVBoxLayout) -> None:
         """創建分頁區域"""
@@ -83,7 +167,7 @@ class FeedbackWindow(QMainWindow):
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setMinimumHeight(500)
+        scroll_area.setMinimumHeight(150)  # 降低滾動區域最小高度，支持小窗口
         scroll_area.setStyleSheet("""
             QScrollArea {
                 border: 1px solid #464647;
@@ -138,7 +222,7 @@ class FeedbackWindow(QMainWindow):
         """)
         
         self.tab_widget = QTabWidget()
-        self.tab_widget.setMinimumHeight(500)
+        self.tab_widget.setMinimumHeight(150)  # 降低分頁組件最小高度
         # 設置分頁組件的大小策略，確保能觸發滾動
         self.tab_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
@@ -147,12 +231,16 @@ class FeedbackWindow(QMainWindow):
             self.tab_widget, 
             self.project_dir, 
             self.summary, 
-            self.combined_mode
+            self.combined_mode,
+            self.layout_orientation
         )
         
         # 創建分頁
         self.tab_manager.create_tabs()
-        
+
+        # 連接分頁信號
+        self.tab_manager.connect_signals(self)
+
         # 將分頁組件放入滾動區域
         scroll_area.setWidget(self.tab_widget)
         
@@ -182,13 +270,21 @@ class FeedbackWindow(QMainWindow):
     
     def _setup_shortcuts(self) -> None:
         """設置快捷鍵"""
-        # Ctrl+Enter 或 Cmd+Enter 提交回饋
-        submit_shortcut = QShortcut(QKeySequence("Ctrl+Return"), self)
-        submit_shortcut.activated.connect(self._submit_feedback)
+        # Ctrl+Enter (主鍵盤) 提交回饋
+        submit_shortcut_main = QShortcut(QKeySequence("Ctrl+Return"), self)
+        submit_shortcut_main.activated.connect(self._submit_feedback)
         
-        # macOS 支援
-        submit_shortcut_mac = QShortcut(QKeySequence("Meta+Return"), self)
-        submit_shortcut_mac.activated.connect(self._submit_feedback)
+        # Ctrl+Enter (數字鍵盤) 提交回饋
+        submit_shortcut_keypad = QShortcut(QKeySequence(Qt.Modifier.CTRL | Qt.Key.Key_Enter), self)
+        submit_shortcut_keypad.activated.connect(self._submit_feedback)
+        
+        # macOS 支援 Cmd+Return (主鍵盤)
+        submit_shortcut_mac_main = QShortcut(QKeySequence("Meta+Return"), self)
+        submit_shortcut_mac_main.activated.connect(self._submit_feedback)
+
+        # macOS 支援 Cmd+Enter (數字鍵盤)
+        submit_shortcut_mac_keypad = QShortcut(QKeySequence(Qt.Modifier.META | Qt.Key.Key_Enter), self)
+        submit_shortcut_mac_keypad.activated.connect(self._submit_feedback)
         
         # Escape 取消回饋
         cancel_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
@@ -283,18 +379,24 @@ class FeedbackWindow(QMainWindow):
             }
         """)
     
-    def _on_layout_mode_change_requested(self, combined_mode: bool) -> None:
-        """處理佈局模式變更請求"""
+    def _on_layout_change_requested(self, combined_mode: bool, orientation: str) -> None:
+        """處理佈局變更請求（模式和方向同時變更）"""
         try:
             # 保存當前內容
             current_data = self.tab_manager.get_feedback_data()
             
+            # 記住當前分頁索引
+            current_tab_index = self.tab_widget.currentIndex()
+            
             # 保存新設置
             self.combined_mode = combined_mode
+            self.layout_orientation = orientation
             self.config_manager.set_layout_mode(combined_mode)
+            self.config_manager.set_layout_orientation(orientation)
             
             # 重新創建分頁
             self.tab_manager.set_layout_mode(combined_mode)
+            self.tab_manager.set_layout_orientation(orientation)
             self.tab_manager.create_tabs()
             
             # 恢復內容
@@ -310,16 +412,97 @@ class FeedbackWindow(QMainWindow):
             # 刷新UI文字
             self._refresh_ui_texts()
             
-            debug_log(f"佈局模式已切換到: {'合併模式' if combined_mode else '分離模式'}")
+            # 恢復到設定頁面（通常是倒數第二個分頁）
+            if self.combined_mode:
+                # 合併模式：回饋、命令、設置、關於
+                settings_tab_index = 2
+            else:
+                # 分離模式：回饋、摘要、命令、設置、關於
+                settings_tab_index = 3
+            
+            # 確保索引在有效範圍內
+            if settings_tab_index < self.tab_widget.count():
+                self.tab_widget.setCurrentIndex(settings_tab_index)
+            
+            mode_text = "合併模式" if combined_mode else "分離模式"
+            orientation_text = "（水平布局）" if orientation == "horizontal" else "（垂直布局）"
+            if combined_mode:
+                mode_text += orientation_text
+            debug_log(f"佈局已切換到: {mode_text}")
             
         except Exception as e:
-            debug_log(f"佈局模式切換失敗: {e}")
+            debug_log(f"佈局變更失敗: {e}")
             QMessageBox.warning(self, t('errors.title'), t('errors.interfaceReloadError', error=str(e)))
     
     def _handle_image_paste_from_textarea(self) -> None:
         """處理從文字框智能貼上圖片的功能"""
         if self.tab_manager.feedback_tab:
             self.tab_manager.feedback_tab.handle_image_paste_from_textarea()
+    
+    def _on_reset_settings_requested(self) -> None:
+        """處理重置設定請求"""
+        try:
+            # 重置配置管理器的所有設定
+            self.config_manager.reset_settings()
+            
+            # 重置應用程式狀態
+            self.combined_mode = False  # 重置為分離模式
+            self.layout_orientation = 'vertical'  # 重置為垂直布局
+            
+            # 重新設置語言為預設
+            self.i18n.set_language('zh-TW')
+            
+            # 保存當前內容
+            current_data = self.tab_manager.get_feedback_data()
+            
+            # 重新創建分頁
+            self.tab_manager.set_layout_mode(self.combined_mode)
+            self.tab_manager.set_layout_orientation(self.layout_orientation)
+            self.tab_manager.create_tabs()
+            
+            # 恢復內容
+            self.tab_manager.restore_content(
+                current_data["interactive_feedback"],
+                current_data["command_logs"],
+                current_data["images"]
+            )
+            
+            # 重新連接信號
+            self.tab_manager.connect_signals(self)
+            
+            # 重新載入設定分頁的狀態
+            if self.tab_manager.settings_tab:
+                self.tab_manager.settings_tab.reload_settings_from_config()
+            
+            # 刷新UI文字
+            self._refresh_ui_texts()
+            
+            # 重新應用視窗定位（使用重置後的設定）
+            self._apply_window_positioning()
+            
+            # 切換到設定分頁顯示重置結果
+            settings_tab_index = 3  # 分離模式下設定分頁是第4個（索引3）
+            if settings_tab_index < self.tab_widget.count():
+                self.tab_widget.setCurrentIndex(settings_tab_index)
+            
+            # 顯示成功訊息
+            QMessageBox.information(
+                self, 
+                t('settings.reset.successTitle'),
+                t('settings.reset.successMessage'),
+                QMessageBox.Ok
+            )
+            
+            debug_log("設定重置成功")
+            
+        except Exception as e:
+            debug_log(f"重置設定失敗: {e}")
+            QMessageBox.critical(
+                self, 
+                t('errors.title'),
+                t('settings.reset.error', error=str(e)),
+                QMessageBox.Ok
+            )
     
     def _submit_feedback(self) -> None:
         """提交回饋"""
@@ -335,32 +518,276 @@ class FeedbackWindow(QMainWindow):
         self.close()
     
     def _cancel_feedback(self) -> None:
-        """取消回饋"""
-        reply = QMessageBox.question(
-            self, t('app.confirmCancel'), 
-            t('app.confirmCancelMessage'),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            self.result = None
-            self.close()
+        """取消回饋收集"""
+        debug_log("取消回饋收集")
+        self.result = ""
+        self.close()
+    
+    def force_close(self) -> None:
+        """強制關閉視窗（用於超時處理）"""
+        debug_log("強制關閉視窗（超時）")
+        self.result = ""
+        self.close()
+
+    def _on_timeout_occurred(self) -> None:
+        """處理超時事件"""
+        debug_log("用戶設置的超時時間已到，自動關閉視窗")
+        self._timeout_occurred = True
+        self.timeout_occurred.emit()
+        self.force_close()
+
+    def start_timeout_if_enabled(self) -> None:
+        """如果啟用了超時，自動開始倒數計時"""
+        if hasattr(self, 'tab_manager') and self.tab_manager:
+            timeout_widget = self.tab_manager.get_timeout_widget()
+            if timeout_widget:
+                enabled, _ = timeout_widget.get_timeout_settings()
+                if enabled:
+                    timeout_widget.start_countdown()
+                    debug_log("窗口顯示時自動開始倒數計時")
+
+    def _on_timeout_settings_changed(self, enabled: bool, seconds: int) -> None:
+        """處理超時設置變更（從設置頁籤觸發）"""
+        # 檢查是否超過 MCP 超時限制
+        if self.mcp_timeout_seconds is not None and seconds > self.mcp_timeout_seconds:
+            debug_log(f"用戶設置的超時時間 ({seconds}s) 超過 MCP 限制 ({self.mcp_timeout_seconds}s)，調整為 MCP 時間")
+            seconds = self.mcp_timeout_seconds
+
+        # 更新內部狀態
+        self.timeout_enabled = enabled
+        self.timeout_duration = seconds
+
+        # 保存設置
+        self.config_manager.set_timeout_settings(enabled, seconds)
+        debug_log(f"超時設置已更新: {'啟用' if enabled else '停用'}, {seconds} 秒")
+
+        # 更新倒數計時器顯示
+        self._update_countdown_visibility()
+
+        # 重新開始倒數計時
+        if enabled:
+            self.start_countdown()
+        else:
+            self.stop_countdown()
+
+    def start_timeout_if_enabled(self) -> None:
+        """如果啟用了超時，開始倒數計時"""
+        if self.timeout_enabled:
+            self.start_countdown()
+            debug_log("超時倒數計時已開始")
+
+    def stop_timeout(self) -> None:
+        """停止超時倒數計時"""
+        self.stop_countdown()
+        debug_log("超時倒數計時已停止")
+
+    def start_countdown(self) -> None:
+        """開始倒數計時"""
+        if not self.timeout_enabled:
+            return
+
+        self.remaining_seconds = self.timeout_duration
+        self.countdown_timer.start(1000)  # 每秒更新
+        self._update_countdown_display()
+        debug_log(f"開始倒數計時：{self.timeout_duration} 秒")
+
+    def stop_countdown(self) -> None:
+        """停止倒數計時"""
+        self.countdown_timer.stop()
+        self.countdown_display.setText("--:--")
+        debug_log("倒數計時已停止")
+
+    def _update_countdown(self) -> None:
+        """更新倒數計時"""
+        self.remaining_seconds -= 1
+        self._update_countdown_display()
+
+        if self.remaining_seconds <= 0:
+            self.countdown_timer.stop()
+            self._on_timeout_occurred()
+            debug_log("倒數計時結束，觸發超時事件")
+
+    def _update_countdown_display(self) -> None:
+        """更新倒數顯示"""
+        if self.remaining_seconds <= 0:
+            self.countdown_display.setText("00:00")
+            self.countdown_display.setStyleSheet("""
+                color: #ff4444;
+                font-size: 14px;
+                font-weight: bold;
+                font-family: 'Consolas', 'Monaco', monospace;
+                min-width: 50px;
+                margin-left: 8px;
+            """)
+        else:
+            minutes = self.remaining_seconds // 60
+            seconds = self.remaining_seconds % 60
+            time_text = f"{minutes:02d}:{seconds:02d}"
+            self.countdown_display.setText(time_text)
+
+            # 根據剩餘時間調整顏色
+            if self.remaining_seconds <= 60:  # 最後1分鐘
+                color = "#ff4444"  # 紅色
+            elif self.remaining_seconds <= 300:  # 最後5分鐘
+                color = "#ffaa00"  # 橙色
+            else:
+                color = "#ffa500"  # 黃色
+
+            self.countdown_display.setStyleSheet(f"""
+                color: {color};
+                font-size: 14px;
+                font-weight: bold;
+                font-family: 'Consolas', 'Monaco', monospace;
+                min-width: 50px;
+                margin-left: 8px;
+            """)
+
+    def _update_countdown_visibility(self) -> None:
+        """更新倒數計時器可見性"""
+        # 倒數計時器只在啟用超時時顯示
+        self.countdown_label.setVisible(self.timeout_enabled)
+        self.countdown_display.setVisible(self.timeout_enabled)
     
     def _refresh_ui_texts(self) -> None:
         """刷新界面文字"""
         self.setWindowTitle(t('app.title'))
         self.project_label.setText(f"{t('app.projectDirectory')}: {self.project_dir}")
-        
+
         # 更新按鈕文字
         self.submit_button.setText(t('buttons.submit'))
         self.cancel_button.setText(t('buttons.cancel'))
-        
+
+        # 更新倒數計時器文字
+        if hasattr(self, 'countdown_label'):
+            self.countdown_label.setText(t('timeout.remaining'))
+
         # 更新分頁文字
         self.tab_manager.update_tab_texts()
     
+    def _apply_window_positioning(self) -> None:
+        """根據用戶設置應用視窗定位策略"""
+        always_center = self.config_manager.get_always_center_window()
+        
+        if always_center:
+            # 總是中心顯示模式：使用保存的大小（如果有的話），然後置中
+            self._restore_window_size_only()
+            self._move_to_primary_screen_center()
+        else:
+            # 智能定位模式：先嘗試恢復上次完整的位置和大小
+            if self._restore_last_position():
+                # 檢查恢復的位置是否可見
+                if not self._is_window_visible():
+                    self._move_to_primary_screen_center()
+            else:
+                # 沒有保存的位置，移到中心
+                self._move_to_primary_screen_center()
+    
+    def _is_window_visible(self) -> bool:
+        """檢查視窗是否在任何螢幕的可見範圍內"""
+        from PySide6.QtWidgets import QApplication
+        
+        window_rect = self.frameGeometry()
+        
+        for screen in QApplication.screens():
+            if screen.availableGeometry().intersects(window_rect):
+                return True
+        return False
+    
+    def _move_to_primary_screen_center(self) -> None:
+        """將視窗移到主螢幕中心"""
+        from PySide6.QtWidgets import QApplication
+        
+        screen = QApplication.primaryScreen()
+        if screen:
+            screen_geometry = screen.availableGeometry()
+            window_geometry = self.frameGeometry()
+            center_point = screen_geometry.center()
+            window_geometry.moveCenter(center_point)
+            self.move(window_geometry.topLeft())
+            debug_log("視窗已移到主螢幕中心")
+    
+    def _restore_window_size_only(self) -> bool:
+        """只恢復視窗大小（不恢復位置）"""
+        try:
+            geometry = self.config_manager.get_window_geometry()
+            if geometry and 'width' in geometry and 'height' in geometry:
+                self.resize(geometry['width'], geometry['height'])
+                debug_log(f"已恢復視窗大小: {geometry['width']}x{geometry['height']}")
+                return True
+        except Exception as e:
+            debug_log(f"恢復視窗大小失敗: {e}")
+        return False
+    
+    def _restore_last_position(self) -> bool:
+        """嘗試恢復上次保存的視窗位置和大小"""
+        try:
+            geometry = self.config_manager.get_window_geometry()
+            if geometry and 'x' in geometry and 'y' in geometry and 'width' in geometry and 'height' in geometry:
+                self.move(geometry['x'], geometry['y'])
+                self.resize(geometry['width'], geometry['height'])
+                debug_log(f"已恢復視窗位置: ({geometry['x']}, {geometry['y']}) 大小: {geometry['width']}x{geometry['height']}")
+                return True
+        except Exception as e:
+            debug_log(f"恢復視窗位置失敗: {e}")
+        return False
+    
+    def _save_window_position(self) -> None:
+        """保存當前視窗位置和大小"""
+        try:
+            always_center = self.config_manager.get_always_center_window()
+            
+            # 獲取當前幾何信息
+            current_geometry = {
+                'width': self.width(),
+                'height': self.height()
+            }
+            
+            if not always_center:
+                # 智能定位模式：同時保存位置
+                current_geometry['x'] = self.x()
+                current_geometry['y'] = self.y()
+                debug_log(f"已保存視窗位置: ({current_geometry['x']}, {current_geometry['y']}) 大小: {current_geometry['width']}x{current_geometry['height']}")
+            else:
+                # 總是中心顯示模式：只保存大小，不保存位置
+                debug_log(f"已保存視窗大小: {current_geometry['width']}x{current_geometry['height']} (總是中心顯示模式)")
+            
+            # 獲取現有配置，只更新需要的部分
+            saved_geometry = self.config_manager.get_window_geometry() or {}
+            saved_geometry.update(current_geometry)
+            
+            self.config_manager.set_window_geometry(saved_geometry)
+            
+        except Exception as e:
+            debug_log(f"保存視窗狀態失敗: {e}")
+    
+    def resizeEvent(self, event) -> None:
+        """窗口大小變化事件"""
+        super().resizeEvent(event)
+        # 窗口大小變化時始終保存（無論是否設置為中心顯示）
+        if hasattr(self, 'config_manager'):
+            self._schedule_save_window_position()
+    
+    def moveEvent(self, event) -> None:
+        """窗口位置變化事件"""
+        super().moveEvent(event)
+        # 窗口位置變化只在智能定位模式下保存
+        if hasattr(self, 'config_manager') and not self.config_manager.get_always_center_window():
+            self._schedule_save_window_position()
+    
+    def _schedule_save_window_position(self) -> None:
+        """調度窗口位置保存（防抖機制）"""
+        if hasattr(self, '_save_timer'):
+            self._save_timer.start(self._save_delay)
+    
+    def _delayed_save_window_position(self) -> None:
+        """延遲保存窗口位置（防抖機制的實際執行）"""
+        self._save_window_position()
+    
     def closeEvent(self, event) -> None:
         """窗口關閉事件"""
+        # 最終保存視窗狀態（大小始終保存，位置根據設置決定）
+        self._save_window_position()
+        
         # 清理分頁管理器
         self.tab_manager.cleanup()
         event.accept()

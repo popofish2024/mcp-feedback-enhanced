@@ -37,8 +37,9 @@ class WebUIManager:
     
     def __init__(self, host: str = "127.0.0.1", port: int = None):
         self.host = host
-        self.port = port or find_free_port()
-        self.app = FastAPI(title="Interactive Feedback MCP")
+        # 優先使用固定端口 8765，確保 localStorage 的一致性
+        self.port = port or find_free_port(preferred_port=8765)
+        self.app = FastAPI(title="MCP Feedback Enhanced")
         self.sessions: Dict[str, WebFeedbackSession] = {}
         self.server_thread = None
         self.server_process = None
@@ -59,11 +60,8 @@ class WebUIManager:
         web_static_path = Path(__file__).parent / "static"
         if web_static_path.exists():
             self.app.mount("/static", StaticFiles(directory=str(web_static_path)), name="static")
-        
-        # 備用：原有的靜態文件
-        fallback_static_path = Path(__file__).parent.parent / "static"
-        if fallback_static_path.exists():
-            self.app.mount("/fallback_static", StaticFiles(directory=str(fallback_static_path)), name="fallback_static")
+        else:
+            raise RuntimeError(f"Static files directory not found: {web_static_path}")
 
     def _setup_templates(self):
         """設置模板引擎"""
@@ -72,9 +70,7 @@ class WebUIManager:
         if web_templates_path.exists():
             self.templates = Jinja2Templates(directory=str(web_templates_path))
         else:
-            # 備用：原有的模板
-            fallback_templates_path = Path(__file__).parent.parent / "templates"
-            self.templates = Jinja2Templates(directory=str(fallback_templates_path))
+            raise RuntimeError(f"Templates directory not found: {web_templates_path}")
 
     def create_session(self, project_directory: str, summary: str) -> str:
         """創建新的回饋會話"""
@@ -178,13 +174,14 @@ def get_web_ui_manager() -> WebUIManager:
     return _web_ui_manager
 
 
-async def launch_web_feedback_ui(project_directory: str, summary: str) -> dict:
+async def launch_web_feedback_ui(project_directory: str, summary: str, timeout: int = 600) -> dict:
     """
     啟動 Web 回饋介面並等待用戶回饋
     
     Args:
         project_directory: 專案目錄路徑
         summary: AI 工作摘要
+        timeout: 超時時間（秒）
         
     Returns:
         dict: 回饋結果，包含 logs、interactive_feedback 和 images
@@ -207,13 +204,24 @@ async def launch_web_feedback_ui(project_directory: str, summary: str) -> dict:
     manager.open_browser(feedback_url)
     
     try:
-        # 等待用戶回饋
-        result = await session.wait_for_feedback()
+        # 等待用戶回饋，傳遞 timeout 參數
+        result = await session.wait_for_feedback(timeout)
         debug_log(f"收到用戶回饋，會話: {session_id}")
         return result
+    except TimeoutError:
+        debug_log(f"會話 {session_id} 超時")
+        # 資源已在 wait_for_feedback 中清理，這裡只需要記錄和重新拋出
+        raise
+    except Exception as e:
+        debug_log(f"會話 {session_id} 發生錯誤: {e}")
+        raise
     finally:
-        # 清理會話
+        # 清理會話（無論成功還是失敗）
         manager.remove_session(session_id)
+        # 如果沒有其他活躍會話，停止服務器
+        if len(manager.sessions) == 0:
+            debug_log("沒有活躍會話，停止 Web UI 服務器")
+            stop_web_ui()
 
 
 def stop_web_ui():
@@ -232,21 +240,22 @@ if __name__ == "__main__":
             project_dir = os.getcwd()
             summary = "這是一個測試摘要，用於驗證 Web UI 功能。"
             
-            print(f"啟動 Web UI 測試...")
-            print(f"專案目錄: {project_dir}")
-            print("等待用戶回饋...")
-            
+            from ..debug import debug_log
+            debug_log(f"啟動 Web UI 測試...")
+            debug_log(f"專案目錄: {project_dir}")
+            debug_log("等待用戶回饋...")
+
             result = await launch_web_feedback_ui(project_dir, summary)
-            
-            print("收到回饋結果:")
-            print(f"命令日誌: {result.get('logs', '')}")
-            print(f"互動回饋: {result.get('interactive_feedback', '')}")
-            print(f"圖片數量: {len(result.get('images', []))}")
-            
+
+            debug_log("收到回饋結果:")
+            debug_log(f"命令日誌: {result.get('logs', '')}")
+            debug_log(f"互動回饋: {result.get('interactive_feedback', '')}")
+            debug_log(f"圖片數量: {len(result.get('images', []))}")
+
         except KeyboardInterrupt:
-            print("\n用戶取消操作")
+            debug_log("\n用戶取消操作")
         except Exception as e:
-            print(f"錯誤: {e}")
+            debug_log(f"錯誤: {e}")
         finally:
             stop_web_ui()
 

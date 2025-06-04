@@ -72,6 +72,11 @@
         "error": "Execution Error",
         "history": "Command History"
     },
+    "combined": {
+        "description": "Combined mode: AI summary and feedback input are on the same page for easy comparison.",
+        "summaryTitle": "📋 AI Work Summary",
+        "feedbackTitle": "💬 Provide Feedback"
+    },
     "settings": {
         "title": "⚙️ Settings",
         "description": "Adjust interface settings and preference options.",
@@ -79,15 +84,25 @@
         "currentLanguage": "Current Language",
         "languageDesc": "Select interface display language",
         "interface": "Interface Settings",
-        "combinedMode": "Combined Mode",
-        "combinedModeDesc": "Merge AI summary and feedback input in the same tab",
+        "layoutMode": "Interface Layout Mode",
+        "layoutModeDesc": "Select how AI summary and feedback input are displayed",
+        "separateMode": "Separate Mode",
+        "separateModeDesc": "AI summary and feedback are in separate tabs",
+        "combinedVertical": "Combined Mode (Vertical Layout)",
+        "combinedVerticalDesc": "AI summary on top, feedback input below, both on the same page",
+        "combinedHorizontal": "Combined Mode (Horizontal Layout)",
+        "combinedHorizontalDesc": "AI summary on left, feedback input on right, expanding summary viewing area",
         "autoClose": "Auto Close Page",
         "autoCloseDesc": "Automatically close page after submitting feedback",
         "theme": "Theme",
         "notifications": "Notifications",
         "advanced": "Advanced Settings",
         "save": "Save Settings",
-        "reset": "Reset",
+        "reset": "Reset Settings",
+        "resetDesc": "Clear all saved settings and restore to default state",
+        "resetConfirm": "Are you sure you want to reset all settings? This will clear all saved preferences.",
+        "resetSuccess": "Settings have been reset to default values",
+        "resetError": "Error occurred while resetting settings",
         "timeout": "Connection Timeout (seconds)",
         "autorefresh": "Auto Refresh",
         "debug": "Debug Mode"
@@ -132,6 +147,28 @@
         "upload": "Upload",
         "download": "Download"
     },
+    "session": {
+        "timeout": "⏰ Session has timed out, interface will close automatically",
+        "timeoutWarning": "Session is about to timeout",
+        "timeoutDescription": "Due to prolonged inactivity, the session has timed out. The interface will automatically close in 3 seconds.",
+        "closing": "Closing..."
+    },
+    "timeout": {
+        "enable": "Auto Close",
+        "enableTooltip": "When enabled, the interface will automatically close after the specified time",
+        "duration": {
+            "label": "Timeout Duration",
+            "description": "Set the auto-close time (30 seconds - 2 hours)"
+        },
+        "seconds": "seconds",
+        "remaining": "Time Remaining",
+        "expired": "⏰ Time expired, interface will close automatically",
+        "autoCloseMessage": "Interface will automatically close in {seconds} seconds",
+        "settings": {
+            "title": "Timeout Settings",
+            "description": "When enabled, the interface will automatically close after the specified time. The countdown timer will be displayed in the header area."
+        }
+    },
     "dynamic": {
         "aiSummary": "Test Web UI Functionality\n\n🎯 **Test Items:**\n- Web UI server startup and operation\n- WebSocket real-time communication\n- Feedback submission functionality\n- Image upload and preview\n- Command execution functionality\n- Smart Ctrl+V image pasting\n- Multi-language interface functionality\n\n📋 **Test Steps:**\n1. Test image upload (drag-drop, file selection, clipboard)\n2. Press Ctrl+V in text box to test smart pasting\n3. Try switching languages (Traditional Chinese/Simplified Chinese/English)\n4. Test command execution functionality\n5. Submit feedback and images\n\nPlease test these features and provide feedback!",
         "terminalWelcome": "Welcome to Interactive Feedback Terminal\n========================================\nProject Directory: {sessionId}\nEnter commands and press Enter or click Execute button\nSupported commands: ls, dir, pwd, cat, type, etc.\n\n$ "
@@ -150,5 +187,24 @@
         "contactDescription": "For technical support, issue reports, or feature suggestions, please contact us through Discord community or GitHub Issues.",
         "thanks": "Thanks & Contributions",
         "thanksText": "Thanks to the original author Fábio Ferreira (@fabiomlferreira) for creating the original interactive-feedback-mcp project.\n\nThis enhanced version is developed and maintained by Minidoracat, greatly expanding the project functionality with GUI interface, image support, multi-language capabilities, and many other improvements.\n\nSpecial thanks to sanshao85's mcp-feedback-collector project for UI design inspiration.\n\nOpen source collaboration makes technology better!"
+    },
+    "images": {
+        "settings": {
+            "title": "Image Settings",
+            "sizeLimit": "Image Size Limit",
+            "sizeLimitOptions": {
+                "unlimited": "Unlimited",
+                "1mb": "1MB",
+                "3mb": "3MB",
+                "5mb": "5MB"
+            },
+            "base64Detail": "Base64 Compatibility Mode",
+            "base64DetailHelp": "When enabled, includes full Base64 image data in text, improving compatibility with certain AI models",
+            "base64Warning": "⚠️ Increases transmission size",
+            "compatibilityHint": "💡 Images not recognized correctly?",
+            "enableBase64Hint": "Try enabling Base64 compatibility mode"
+        },
+        "sizeLimitExceeded": "Image {filename} size is {size}, exceeds {limit} limit!",
+        "sizeLimitExceededAdvice": "Consider compressing the image with editing software before uploading, or adjust the image size limit settings."
     }
 }

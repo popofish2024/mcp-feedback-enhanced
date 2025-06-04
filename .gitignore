@@ -21,3 +21,4 @@ uv.lock
 
 .idea/
 .specstory/
+.mcp_feedback_settings.json

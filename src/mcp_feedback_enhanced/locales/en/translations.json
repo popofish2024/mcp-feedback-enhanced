@@ -46,6 +46,11 @@
     "emptyMessage": "Please enter feedback content before submitting. You can describe your thoughts, suggestions, or areas that need modification.",
     "outputPlaceholder": "Command output will appear here..."
   },
+  "summary": {
+    "title": "AI Work Summary",
+    "description": "Below is the work content that AI has just completed for you. Please review and provide feedback.",
+    "testDescription": "Below is the message content replied by AI. Please review and provide feedback."
+  },
   "command": {
     "title": "Command Execution",
     "description": "You can execute commands to verify results or gather more information.",
@@ -71,7 +76,24 @@
     "paste_failed": "Paste failed, no image in clipboard",
     "paste_no_image": "No image in clipboard to paste",
     "paste_image_from_textarea": "Image intelligently pasted from text area to image area",
-    "images_clear": "Clear all images"
+    "images_clear": "Clear all images",
+    "settings": {
+      "title": "Image Settings",
+      "sizeLimit": "Image Size Limit",
+      "sizeLimitOptions": {
+        "unlimited": "Unlimited",
+        "1mb": "1MB",
+        "3mb": "3MB",
+        "5mb": "5MB"
+      },
+      "base64Detail": "Base64 Compatibility Mode",
+      "base64DetailHelp": "When enabled, includes complete Base64 image data in text to improve compatibility with AI models like Gemini",
+      "base64Warning": "⚠️ Increases transmission size",
+      "compatibilityHint": "💡 Images not recognized correctly?",
+      "enableBase64Hint": "Try enabling Base64 compatibility mode"
+    },
+    "sizeLimitExceeded": "Image {filename} size is {size}, exceeds {limit} limit!",
+    "sizeLimitExceededAdvice": "Please compress the image using image editing software, or adjust the image size limit setting."
   },
   "language": {
     "settings": "Language Settings",
@@ -82,15 +104,46 @@
     "title": "Application Settings",
     "language": {
       "title": "Language Settings",
-      "selector": "🌐 Language Selection",
-      "description": "Choose your preferred interface language. Language changes take effect immediately."
+      "selector": "🌐 Language Selection"
     },
     "layout": {
       "title": "Interface Layout",
-      "combinedMode": "Combined Mode",
-      "combinedModeDescription": "Display AI summary and feedback on the same page for easy comparison",
       "separateMode": "Separate Mode",
-      "separateModeDescription": "AI summary and feedback are in separate tabs"
+      "separateModeDescription": "AI summary and feedback are in separate tabs",
+      "combinedVertical": "Combined Mode (Vertical Layout)",
+      "combinedVerticalDescription": "AI summary on top, feedback input below, both on the same page",
+      "combinedHorizontal": "Combined Mode (Horizontal Layout)",
+      "combinedHorizontalDescription": "AI summary on left, feedback input on right, expanding summary viewing area"
+    },
+    "window": {
+      "title": "Window Positioning",
+      "alwaysCenter": "Always show window at primary screen center"
+    },
+    "reset": {
+      "title": "Reset Settings",
+      "button": "Reset Settings",
+      "confirmTitle": "Confirm Reset Settings",
+      "confirmMessage": "Are you sure you want to reset all settings? This will clear all saved preferences and restore to default state.",
+      "successTitle": "Reset Successful",
+      "successMessage": "All settings have been successfully reset to default values.",
+      "errorTitle": "Reset Failed",
+      "errorMessage": "Error occurred while resetting settings: {error}"
+    }
+  },
+  "timeout": {
+    "enable": "Auto Close",
+    "enableTooltip": "When enabled, the interface will automatically close after the specified time",
+    "duration": {
+      "label": "Timeout Duration",
+      "description": "Set the auto-close time (30 seconds - 2 hours)"
+    },
+    "seconds": "seconds",
+    "remaining": "Time Remaining",
+    "expired": "Time Expired",
+    "autoCloseMessage": "Interface will automatically close in {seconds} seconds",
+    "settings": {
+      "title": "Timeout Settings",
+      "description": "When enabled, the interface will automatically close after the specified time. The countdown timer will be displayed in the header area."
     }
   },
   "buttons": {

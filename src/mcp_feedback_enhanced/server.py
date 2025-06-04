@@ -4,7 +4,7 @@
 MCP 伺服器主程式
 ================
 
-Interactive Feedback MCP 的核心伺服器程式，提供用戶互動回饋功能。
+MCP Feedback Enhanced 的核心伺服器程式，提供用戶互動回饋功能。
 支援智能環境檢測，自動選擇 Qt GUI 或 Web UI 介面。
 
 主要功能：
@@ -281,10 +281,22 @@ def create_feedback_text(feedback_data: dict) -> str:
                         # 如果 AI 助手不支援 MCP 圖片，可以提供完整 base64
                         debug_log(f"圖片 {i} Base64 已準備，長度: {len(img_base64)}")
                         
-                        # 可選：根據環境變數決定是否包含完整 base64
-                        include_full_base64 = os.getenv("INCLUDE_BASE64_DETAIL", "").lower() in ("true", "1", "yes", "on")
+                        # 檢查是否啟用 Base64 詳細模式（從 UI 設定中獲取）
+                        include_full_base64 = feedback_data.get("settings", {}).get("enable_base64_detail", False)
+
                         if include_full_base64:
-                            img_info += f"\n     完整 Base64: data:image/png;base64,{img_base64}"
+                            # 根據檔案名推斷 MIME 類型
+                            file_name = img.get("name", "image.png")
+                            if file_name.lower().endswith(('.jpg', '.jpeg')):
+                                mime_type = 'image/jpeg'
+                            elif file_name.lower().endswith('.gif'):
+                                mime_type = 'image/gif'
+                            elif file_name.lower().endswith('.webp'):
+                                mime_type = 'image/webp'
+                            else:
+                                mime_type = 'image/png'
+
+                            img_info += f"\n     完整 Base64: data:{mime_type};base64,{img_base64}"
                         
                 except Exception as e:
                     debug_log(f"圖片 {i} Base64 處理失敗: {e}")
@@ -356,45 +368,37 @@ def process_images(images_data: List[dict]) -> List[MCPImage]:
     return mcp_images
 
 
-def launch_gui(project_dir: str, summary: str) -> dict:
+async def launch_gui_with_timeout(project_dir: str, summary: str, timeout: int) -> dict:
     """
-    啟動 Qt GUI 收集回饋
-    
-    Args:
-        project_dir: 專案目錄路徑
-        summary: AI 工作摘要
-        
-    Returns:
-        dict: 收集到的回饋資料
+    啟動 GUI 模式並處理超時
     """
-    debug_log("啟動 Qt GUI 介面")
+    debug_log(f"啟動 GUI 模式（超時：{timeout}秒）")
     
     try:
-        from .gui import feedback_ui
-        result = feedback_ui(project_dir, summary)
+        from .gui import feedback_ui_with_timeout
         
-        if result is None:
-            # 用戶取消
+        # 直接調用帶超時的 GUI 函數
+        result = feedback_ui_with_timeout(project_dir, summary, timeout)
+        
+        if result:
             return {
-                "command_logs": "",
-                "interactive_feedback": "用戶取消了回饋。",
+                "logs": f"GUI 模式回饋收集完成",
+                "interactive_feedback": result.get("interactive_feedback", ""),
+                "images": result.get("images", [])
+            }
+        else:
+            return {
+                "logs": "用戶取消了回饋收集",
+                "interactive_feedback": "",
                 "images": []
             }
-        
-        # 轉換鍵名以保持向後兼容
-        return {
-            "command_logs": result.get("command_logs", ""),
-            "interactive_feedback": result.get("interactive_feedback", ""),
-            "images": result.get("images", [])
-        }
-        
-    except ImportError as e:
-        debug_log(f"無法導入 GUI 模組: {e}")
-        return {
-            "command_logs": "",
-            "interactive_feedback": f"Qt GUI 模組導入失敗: {str(e)}",
-            "images": []
-        }
+            
+    except TimeoutError as e:
+        # 超時異常 - 這是預期的行為
+        raise e
+    except Exception as e:
+        debug_log(f"GUI 啟動失败: {e}")
+        raise Exception(f"GUI 啟動失败: {e}")
 
 
 # ===== MCP 工具定義 =====
@@ -462,7 +466,7 @@ async def interactive_feedback(
         if use_web_ui:
             result = await launch_web_ui_with_timeout(project_directory, summary, timeout)
         else:
-            result = launch_gui(project_directory, summary)
+            result = await launch_gui_with_timeout(project_directory, summary, timeout)
         
         # 處理取消情況
         if not result:
@@ -515,10 +519,10 @@ async def launch_web_ui_with_timeout(project_dir: str, summary: str, timeout: in
     
     try:
         # 使用新的 web 模組
-        from .web import launch_web_feedback_ui
-        
-        # 直接運行 Web UI 會話
-        return await launch_web_feedback_ui(project_dir, summary)
+        from .web import launch_web_feedback_ui, stop_web_ui
+
+        # 傳遞 timeout 參數給 Web UI
+        return await launch_web_feedback_ui(project_dir, summary, timeout)
     except ImportError as e:
         debug_log(f"無法導入 Web UI 模組: {e}")
         return {
@@ -526,9 +530,32 @@ async def launch_web_ui_with_timeout(project_dir: str, summary: str, timeout: in
             "interactive_feedback": f"Web UI 模組導入失敗: {str(e)}",
             "images": []
         }
+    except TimeoutError as e:
+        debug_log(f"Web UI 超時: {e}")
+        # 超時時確保停止 Web 服務器
+        try:
+            from .web import stop_web_ui
+            stop_web_ui()
+            debug_log("Web UI 服務器已因超時而停止")
+        except Exception as stop_error:
+            debug_log(f"停止 Web UI 服務器時發生錯誤: {stop_error}")
+
+        return {
+            "command_logs": "",
+            "interactive_feedback": f"回饋收集超時（{timeout}秒），介面已自動關閉。",
+            "images": []
+        }
     except Exception as e:
         error_msg = f"Web UI 錯誤: {e}"
         debug_log(f"❌ {error_msg}")
+        # 發生錯誤時也要停止 Web 服務器
+        try:
+            from .web import stop_web_ui
+            stop_web_ui()
+            debug_log("Web UI 服務器已因錯誤而停止")
+        except Exception as stop_error:
+            debug_log(f"停止 Web UI 服務器時發生錯誤: {stop_error}")
+
         return {
             "command_logs": "",
             "interactive_feedback": f"錯誤: {str(e)}",

@@ -1,4 +1,4 @@
-# Interactive Feedback MCP（交互反馈 MCP）
+# MCP Feedback Enhanced（交互反馈 MCP）
 
 **🌐 语言切换 / Language:** [English](README.md) | [繁體中文](README.zh-TW.md) | **简体中文**
 
@@ -46,16 +46,16 @@
 
 ### Qt GUI 界面（重构版）
 <div align="center">
-  <img src="docs/images/zh-TW/gui1.png" width="400" alt="Qt GUI 主界面" />
-  <img src="docs/images/zh-TW/gui2.png" width="400" alt="Qt GUI 设置界面" />
+  <img src="docs/zh-CN/images/gui1.png" width="400" alt="Qt GUI 主界面" />
+  <img src="docs/zh-CN/images/gui2.png" width="400" alt="Qt GUI 设置界面" />
 </div>
 
 *Qt GUI 界面 - 模块化重构，支持本地环境*
 
 ### Web UI 界面（重构版）
 <div align="center">
-  <img src="docs/images/zh-TW/web1.png" width="400" alt="Web UI 主界面" />
-  <img src="docs/images/zh-TW/web2.png" width="400" alt="Web UI 设置界面" />
+  <img src="docs/zh-CN/images/web1.png" width="400" alt="Web UI 主界面" />
+  <img src="docs/zh-CN/images/web2.png" width="400" alt="Web UI 设置界面" />
 </div>
 
 *Web UI 界面 - 全新架构，适合 SSH Remote 环境*
@@ -118,6 +118,7 @@ uvx mcp-feedback-enhanced@latest test
 2. 每当收到用户反馈，若反馈内容非空，必须再次调用 MCP mcp-feedback-enhanced，并根据反馈内容调整行为。
 3. 仅当用户明确表示「结束」或「不再需要交互」时，才可停止调用 MCP mcp-feedback-enhanced，流程才算结束。
 4. 除非收到结束指令，否则所有步骤都必须重复调用 MCP mcp-feedback-enhanced。
+5. 完成任务前，必须使用 MCP mcp-feedback-enhanced 工具向用户询问反馈。
 ```
 
 ## ⚙️ 进阶设定
@@ -127,7 +128,6 @@ uvx mcp-feedback-enhanced@latest test
 |------|------|-----|------|
 | `FORCE_WEB` | 强制使用 Web UI | `true`/`false` | `false` |
 | `MCP_DEBUG` | 调试模式 | `true`/`false` | `false` |
-| `INCLUDE_BASE64_DETAIL` | 图片完整 Base64 | `true`/`false` | `false` |
 
 ### 测试选项
 ```bash
@@ -168,33 +168,14 @@ uvx --with-editable . mcp-feedback-enhanced test --web    # 测试 Web UI (自�
 - **Qt GUI 测试**：快速启动并测试本地图形界面
 - **Web UI 测试**：启动 Web 服务器并保持运行，便于完整测试 Web 功能
 
-## 🆕 版本亮点
+## 🆕 版本更新记录
 
-### v2.1.0（最新重构版）
-- 🎨 **全面重构**：GUI 和 Web UI 采用模块化架构
-- 📁 **集中管理**：重新组织文件夹结构，提升维护性
-- 🖥️ **界面优化**：现代化设计和改进的用户体验
-- 🍎 **macOS 界面优化**：针对 macOS 用户体验进行专项改进
-- ⚙️ **功能增强**：新增设置选项和自动关闭页面功能
-- 🌐 **语言切换**：修复 Web UI 语言切换时内容更新问题
-- ℹ️ **关于页面**：新增关于页面，包含版本信息、项目链接和致谢内容
+📋 **完整版本更新记录：** [RELEASE_NOTES/CHANGELOG.zh-CN.md](RELEASE_NOTES/CHANGELOG.zh-CN.md)
 
-### v2.0.14
-- ⌨️ 增强快捷键：Ctrl+Enter 支持数字键盘
-- 🖼️ 智能图片粘贴：Ctrl+V 直接粘贴剪贴板图片
-
-### v2.0.9
-- 🌏 多语言架构重构，支持动态载入
-- 📁 语言文件模块化组织
-
-### v2.0.3
-- 🛡️ 完全修复中文字符编码问题
-- 🔧 解决 JSON 解析错误
-
-### v2.0.0
-- ✅ 新增 Web UI 支持远程环境
-- ✅ 自动环境检测与界面选择
-- ✅ WebSocket 即时通讯
+### 最新版本亮点（v2.2.2）
+- 🔄 **超时自动清理**: 修复 GUI/Web UI 在 MCP session timeout 后没有自动关闭的问题
+- 🛡️ **资源管理优化**: 改进超时处理机制，确保正确清理所有 UI 资源  
+- 🎯 **QTimer 整合**: 在 GUI 中引入精确的 QTimer 超时控制机制
 
 ## 🐛 常见问题
 
@@ -207,11 +188,34 @@ A: 已在 v2.0.3 修复。更新到最新版本：`uvx mcp-feedback-enhanced@lat
 **Q: 图片上传失败**  
 A: 检查文件大小（≤1MB）和格式（PNG/JPG/GIF/BMP/WebP）。
 
-**Q: Web UI 无法启动**  
+**Q: Web UI 无法启动**
 A: 设置 `FORCE_WEB=true` 或检查防火墙设定。
+
+**Q: UV Cache 占用过多磁盘空间**
+A: 由于频繁使用 `uvx` 命令，cache 可能会累积到数十 GB。建议定期清理：
+```bash
+# 查看 cache 大小和详细信息
+python scripts/cleanup_cache.py --size
+
+# 预览清理内容（不实际清理）
+python scripts/cleanup_cache.py --dry-run
+
+# 执行标准清理
+python scripts/cleanup_cache.py --clean
+
+# 强制清理（会尝试关闭相关程序，解决 Windows 文件占用问题）
+python scripts/cleanup_cache.py --force
+
+# 或直接使用 uv 命令
+uv cache clean
+```
+详细说明请参考：[Cache 管理指南](docs/zh-CN/cache-management.md)
 
 **Q: Gemini Pro 2.5 无法解析图片**  
 A: 已知问题，Gemini Pro 2.5 可能无法正确解析上传的图片内容。实测 Claude-4-Sonnet 可以正常解析图片。建议使用 Claude 模型获得更好的图片理解能力。
+
+**Q: 多屏幕视窗定位问题**  
+A: 已在 v2.1.1 修复。进入「⚙️ 设置」标签页，勾选「总是在主屏幕中心显示窗口」即可解决窗口定位问题。特别适用于 T 字型屏幕排列等复杂多屏幕配置。
 
 ## 🙏 致谢
 

@@ -67,6 +67,12 @@
             padding: 0 20px;
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
         .title {
             font-size: 24px;
             font-weight: bold;
@@ -77,6 +83,111 @@
         .project-info {
             color: var(--text-secondary);
             font-size: 14px;
+        }
+
+        /* 倒數計時器顯示樣式 */
+        .countdown-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+
+        .countdown-label {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .countdown-timer {
+            color: var(--warning-color);
+            font-size: 13px;
+            font-weight: bold;
+            font-family: 'Consolas', 'Monaco', monospace;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .countdown-timer.warning {
+            color: var(--warning-color);
+        }
+
+        .countdown-timer.danger {
+            color: var(--error-color);
+        }
+
+        /* 超時設置輸入組件樣式 */
+        .timeout-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeout-input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 100px;
+            text-align: center;
+        }
+
+        .timeout-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .timeout-unit {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* 切換開關樣式 */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #666666;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-color);
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(26px);
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .timeout-controls {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .timeout-separator {
+                display: none;
+            }
         }
 
         .language-selector {
@@ -434,10 +545,6 @@
                 flex-wrap: wrap;
             }
             
-            .footer-actions {
-                flex-direction: column-reverse;
-            }
-            
             /* 小屏幕下調整命令輸出區域高度 */
             .command-output {
                 height: 250px;
@@ -657,6 +764,267 @@
             padding-bottom: 8px;
             border-bottom: 2px solid var(--accent-color);
         }
+
+        /* 新增：水平佈局的 CSS 樣式 */
+        .layout-mode-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .layout-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .layout-option:hover {
+            border-color: var(--accent-color);
+            background: rgba(0, 122, 204, 0.1);
+        }
+
+        .layout-option input[type="radio"] {
+            margin: 0;
+            margin-right: 12px;
+            margin-top: 2px;
+            accent-color: var(--accent-color);
+            transform: scale(1.2);
+        }
+
+        .layout-option label {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .layout-option-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .layout-option-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .layout-option input[type="radio"]:checked + label {
+            color: var(--accent-color);
+        }
+
+        .layout-option input[type="radio"]:checked + label .layout-option-title {
+            color: var(--accent-color);
+        }
+
+        .layout-option:has(input[type="radio"]:checked) {
+            border-color: var(--accent-color);
+            background: rgba(0, 122, 204, 0.15);
+        }
+
+        /* 合併模式分頁的水平佈局樣式 */
+        #tab-combined.active.combined-horizontal .combined-content {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 16px;
+            height: calc(100% - 60px); /* 減去描述區塊的高度 */
+        }
+
+        #tab-combined.active.combined-horizontal .combined-section:first-child {
+            flex: 1 !important;
+            min-width: 300px;
+            max-width: 50%;
+            overflow: hidden; /* 確保容器不超出範圍 */
+        }
+
+        #tab-combined.active.combined-horizontal .combined-section:last-child {
+            flex: 1 !important;
+            min-width: 400px;
+        }
+
+        #tab-combined.active.combined-horizontal .combined-summary {
+            height: calc(100vh - 200px);
+            max-height: 600px;
+            overflow: hidden; /* 確保摘要容器不超出範圍 */
+        }
+
+        #tab-combined.active.combined-horizontal #combinedSummaryContent {
+            height: 100%;
+            min-height: 400px;
+            overflow-y: auto; /* 添加垂直滾動條 */
+            overflow-x: hidden; /* 隱藏水平滾動條 */
+        }
+
+        #tab-combined.active.combined-horizontal .text-input {
+            min-height: 200px;
+        }
+
+        /* 合併模式分頁的垂直佈局樣式 */
+        #tab-combined.active.combined-vertical .combined-content {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 16px;
+            height: calc(100% - 60px); /* 減去描述區塊的高度 */
+        }
+
+        #tab-combined.active.combined-vertical .combined-section:first-child {
+            flex: 1 !important;
+            min-height: 200px;
+            max-height: 400px;
+            overflow: hidden; /* 確保容器不超出範圍 */
+        }
+
+        #tab-combined.active.combined-vertical .combined-section:last-child {
+            flex: 2 !important;
+            min-height: 300px;
+        }
+
+        #tab-combined.active.combined-vertical .combined-summary {
+            height: 300px;
+            max-height: 400px;
+            overflow: hidden; /* 確保摘要容器不超出範圍 */
+        }
+
+        #tab-combined.active.combined-vertical #combinedSummaryContent {
+            height: 100%;
+            min-height: 200px;
+            overflow-y: auto; /* 添加垂直滾動條 */
+            overflow-x: hidden; /* 隱藏水平滾動條 */
+        }
+
+        #tab-combined.active.combined-vertical .text-input {
+            min-height: 200px;
+        }
+
+        /* 預設的合併內容布局 */
+        .combined-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+        }
+
+        /* 圖片設定樣式 */
+        .image-settings-details {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .image-settings-summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 13px;
+            user-select: none;
+            transition: color 0.3s ease;
+        }
+
+        .image-settings-summary:hover {
+            color: var(--text-primary);
+        }
+
+        .image-settings-content {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .image-setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .image-setting-row:last-of-type {
+            margin-bottom: 8px;
+        }
+
+        .image-setting-label {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .image-setting-select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            min-width: 80px;
+        }
+
+        .image-setting-checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .image-setting-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-color);
+        }
+
+        .image-setting-help {
+            color: var(--warning-color);
+            font-size: 11px;
+            margin-left: auto;
+        }
+
+        .image-setting-help-text {
+            color: var(--text-secondary);
+            font-size: 11px;
+            line-height: 1.4;
+            margin-top: 4px;
+            padding: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* 相容性提示樣式 */
+        .compatibility-hint {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid var(--info-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--info-color);
+        }
+
+        .compatibility-hint-btn {
+            background: var(--info-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .compatibility-hint-btn:hover {
+            background: #1976d2;
+        }
     </style>
 </head>
 <body>
@@ -664,7 +1032,14 @@
         <!-- 頭部 -->
         <header class="header">
             <div class="header-content">
-                <h1 class="title" data-i18n="app.title">Interactive Feedback MCP</h1>
+                <div class="header-left">
+                    <h1 class="title" data-i18n="app.title">MCP Feedback Enhanced</h1>
+                    <!-- 倒數計時器顯示 -->
+                    <div id="countdownDisplay" class="countdown-display" style="display: none;">
+                        <span class="countdown-label" data-i18n="timeout.remaining">剩餘時間</span>
+                        <span id="countdownTimer" class="countdown-timer">--:--</span>
+                    </div>
+                </div>
                 <div class="project-info">
                     <span data-i18n="app.projectDirectory">專案目錄</span>: {{ project_directory }}
                 </div>
@@ -718,8 +1093,44 @@
                     ></textarea>
                 </div>
 
+                <!-- 圖片設定區域 -->
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <details class="image-settings-details">
+                        <summary class="image-settings-summary" data-i18n="images.settings.title">⚙️ 圖片設定</summary>
+                        <div class="image-settings-content">
+                            <div class="image-setting-row">
+                                <label class="image-setting-label" data-i18n="images.settings.sizeLimit">圖片大小限制：</label>
+                                <select id="imageSizeLimit" class="image-setting-select">
+                                    <option value="0" data-i18n="images.settings.sizeLimitOptions.unlimited">無限制</option>
+                                    <option value="1048576" data-i18n="images.settings.sizeLimitOptions.1mb">1MB</option>
+                                    <option value="3145728" data-i18n="images.settings.sizeLimitOptions.3mb">3MB</option>
+                                    <option value="5242880" data-i18n="images.settings.sizeLimitOptions.5mb">5MB</option>
+                                </select>
+                            </div>
+                            <div class="image-setting-row">
+                                <label class="image-setting-checkbox-container">
+                                    <input type="checkbox" id="enableBase64Detail" class="image-setting-checkbox">
+                                    <span class="image-setting-checkmark"></span>
+                                    <span class="image-setting-label" data-i18n="images.settings.base64Detail">Base64 相容模式</span>
+                                </label>
+                                <small class="image-setting-help" data-i18n="images.settings.base64Warning">⚠️ 會增加傳輸量</small>
+                            </div>
+                            <div class="image-setting-help-text" data-i18n="images.settings.base64DetailHelp">
+                                啟用後會在文字中包含完整的 Base64 圖片資料，提升與 Gemini 等 AI 模型的相容性
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
                 <div class="input-group">
                     <label class="input-label" data-i18n="feedback.imageLabel">圖片附件（可選）</label>
+                    <!-- 相容性提示區域 -->
+                    <div id="compatibilityHint" class="compatibility-hint" style="display: none;">
+                        <span data-i18n="images.settings.compatibilityHint">💡 圖片無法正確識別？</span>
+                        <button type="button" id="enableBase64Hint" class="compatibility-hint-btn" data-i18n="images.settings.enableBase64Hint">
+                            嘗試啟用 Base64 相容模式
+                        </button>
+                    </div>
                     <div id="imageUploadArea" class="image-upload-area">
                         <div id="imageUploadText" data-i18n="feedback.imageUploadText">
                             📎 點擊選擇圖片或拖放圖片到此處<br>
@@ -778,6 +1189,89 @@
                 </div>
             </div>
 
+            <!-- 合併模式分頁 - 移動到此位置 -->
+            <div id="tab-combined" class="tab-content">
+                <div class="section-description" style="margin-bottom: 12px; padding: 8px 12px; font-size: 13px;" data-i18n="combined.description">
+                    合併模式：AI 摘要和回饋輸入在同一頁面中，方便對照查看。
+                </div>
+                
+                <div class="combined-content">
+                    <!-- AI 摘要區域 -->
+                    <div class="combined-section">
+                        <h3 class="combined-section-title" data-i18n="combined.summaryTitle">📋 AI 工作摘要</h3>
+                        <div class="combined-summary">
+                            <div id="combinedSummaryContent" class="text-input" style="min-height: 200px; white-space: pre-wrap; cursor: text;" data-dynamic-content="aiSummary">
+                                {{ summary }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 回饋輸入區域 -->
+                    <div class="combined-section">
+                        <h3 class="combined-section-title" data-i18n="combined.feedbackTitle">💬 提供回饋</h3>
+                        
+                        <div class="input-group">
+                            <label class="input-label" data-i18n="feedback.textLabel">文字回饋</label>
+                            <textarea 
+                                id="combinedFeedbackText" 
+                                class="text-input" 
+                                data-i18n-placeholder="feedback.detailedPlaceholder"
+                                placeholder="請在這裡輸入您的回饋..."
+                                style="min-height: 150px;"
+                            ></textarea>
+                        </div>
+
+                        <!-- 圖片設定區域 -->
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <details class="image-settings-details">
+                                <summary class="image-settings-summary" data-i18n="images.settings.title">⚙️ 圖片設定</summary>
+                                <div class="image-settings-content">
+                                    <div class="image-setting-row">
+                                        <label class="image-setting-label" data-i18n="images.settings.sizeLimit">圖片大小限制：</label>
+                                        <select id="combinedImageSizeLimit" class="image-setting-select">
+                                            <option value="0" data-i18n="images.settings.sizeLimitOptions.unlimited">無限制</option>
+                                            <option value="1048576" data-i18n="images.settings.sizeLimitOptions.1mb">1MB</option>
+                                            <option value="3145728" data-i18n="images.settings.sizeLimitOptions.3mb">3MB</option>
+                                            <option value="5242880" data-i18n="images.settings.sizeLimitOptions.5mb">5MB</option>
+                                        </select>
+                                    </div>
+                                    <div class="image-setting-row">
+                                        <label class="image-setting-checkbox-container">
+                                            <input type="checkbox" id="combinedEnableBase64Detail" class="image-setting-checkbox">
+                                            <span class="image-setting-checkmark"></span>
+                                            <span class="image-setting-label" data-i18n="images.settings.base64Detail">Base64 相容模式</span>
+                                        </label>
+                                        <small class="image-setting-help" data-i18n="images.settings.base64Warning">⚠️ 會增加傳輸量</small>
+                                    </div>
+                                    <div class="image-setting-help-text" data-i18n="images.settings.base64DetailHelp">
+                                        啟用後會在文字中包含完整的 Base64 圖片資料，提升與 Gemini 等 AI 模型的相容性
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" data-i18n="feedback.imageLabel">圖片附件（可選）</label>
+                            <!-- 相容性提示區域 -->
+                            <div id="combinedCompatibilityHint" class="compatibility-hint" style="display: none;">
+                                <span data-i18n="images.settings.compatibilityHint">💡 圖片無法正確識別？</span>
+                                <button type="button" id="combinedEnableBase64Hint" class="compatibility-hint-btn" data-i18n="images.settings.enableBase64Hint">
+                                    嘗試啟用 Base64 相容模式
+                                </button>
+                            </div>
+                            <div id="combinedImageUploadArea" class="image-upload-area" style="min-height: 100px;">
+                                <div id="combinedImageUploadText" data-i18n="feedback.imageUploadText">
+                                    📎 點擊選擇圖片或拖放圖片到此處<br>
+                                    <small>支援 PNG、JPG、JPEG、GIF、BMP、WebP 等格式</small>
+                                </div>
+                                <div id="combinedImagePreviewContainer" class="image-preview-container"></div>
+                                <input type="file" id="combinedImageInput" multiple accept="image/*" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 設定分頁 -->
             <div id="tab-settings" class="tab-content">
                 <div class="section-description" data-i18n="settings.description">
@@ -792,13 +1286,33 @@
                     <div class="settings-card-body">
                         <div class="setting-item">
                             <div class="setting-info">
-                                <div class="setting-label" data-i18n="settings.combinedMode">合併模式</div>
-                                <div class="setting-description" data-i18n="settings.combinedModeDesc">
-                                    將 AI 摘要和回饋輸入合併在同一個分頁中
+                                <div class="setting-label" data-i18n="settings.layoutMode">界面佈局模式</div>
+                                <div class="setting-description" data-i18n="settings.layoutModeDesc">
+                                    選擇 AI 摘要和回饋輸入的顯示方式
                                 </div>
                             </div>
-                            <div id="combinedModeToggle" class="toggle-switch">
-                                <div class="toggle-knob"></div>
+                            <div class="layout-mode-selector">
+                                <div class="layout-option">
+                                    <input type="radio" id="separateMode" name="layoutMode" value="separate" checked>
+                                    <label for="separateMode">
+                                        <div class="layout-option-title" data-i18n="settings.separateMode">分離模式</div>
+                                        <div class="layout-option-desc" data-i18n="settings.separateModeDesc">AI 摘要和回饋分別在不同頁籤</div>
+                                    </label>
+                                </div>
+                                <div class="layout-option">
+                                    <input type="radio" id="combinedVertical" name="layoutMode" value="combined-vertical">
+                                    <label for="combinedVertical">
+                                        <div class="layout-option-title" data-i18n="settings.combinedVertical">合併模式（垂直布局）</div>
+                                        <div class="layout-option-desc" data-i18n="settings.combinedVerticalDesc">AI 摘要在上，回饋輸入在下，摘要和回饋在同一頁面</div>
+                                    </label>
+                                </div>
+                                <div class="layout-option">
+                                    <input type="radio" id="combinedHorizontal" name="layoutMode" value="combined-horizontal">
+                                    <label for="combinedHorizontal">
+                                        <div class="layout-option-title" data-i18n="settings.combinedHorizontal">合併模式（水平布局）</div>
+                                        <div class="layout-option-desc" data-i18n="settings.combinedHorizontalDesc">AI 摘要在左，回饋輸入在右，增大摘要可視區域</div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="setting-item">
@@ -810,6 +1324,38 @@
                             </div>
                             <div id="autoCloseToggle" class="toggle-switch active">
                                 <div class="toggle-knob"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 超時設定卡片 -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h3 class="settings-card-title" data-i18n="timeout.settings.title">⏰ 超時設置</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label" data-i18n="timeout.enable">自動關閉</div>
+                                <div class="setting-description" data-i18n="timeout.settings.description">
+                                    啟用後，介面將在指定時間後自動關閉。倒數計時器會顯示在頂部區域。
+                                </div>
+                            </div>
+                            <div id="timeoutToggle" class="toggle-switch">
+                                <div class="toggle-knob"></div>
+                            </div>
+                        </div>
+                        <div class="setting-item" style="border-bottom: none;">
+                            <div class="setting-info">
+                                <div class="setting-label" data-i18n="timeout.duration.label">超時時間</div>
+                                <div class="setting-description" data-i18n="timeout.duration.description">
+                                    設置自動關閉的時間（30秒 - 2小時）
+                                </div>
+                            </div>
+                            <div class="timeout-input-group">
+                                <input type="number" id="timeoutDuration" class="timeout-input" min="30" max="7200" value="600">
+                                <span class="timeout-unit" data-i18n="timeout.seconds">秒</span>
                             </div>
                         </div>
                     </div>
@@ -847,48 +1393,23 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 合併模式分頁 - 新增 -->
-            <div id="tab-combined" class="tab-content">
-                <div class="section-description">
-                    合併模式：AI 摘要和回饋輸入在同一頁面中，方便對照查看。
-                </div>
-                
-                <!-- AI 摘要區域 -->
-                <div class="combined-section">
-                    <h3 class="combined-section-title">📋 AI 工作摘要</h3>
-                    <div class="combined-summary">
-                        <div id="combinedSummaryContent" class="text-input" style="min-height: 200px; white-space: pre-wrap; cursor: text;" data-dynamic-content="aiSummary">
-                            {{ summary }}
-                        </div>
+                <!-- 重置設定卡片 -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h3 class="settings-card-title" data-i18n="settings.advanced">🔧 進階設定</h3>
                     </div>
-                </div>
-
-                <!-- 回饋輸入區域 -->
-                <div class="combined-section">
-                    <h3 class="combined-section-title">💬 提供回饋</h3>
-                    
-                    <div class="input-group">
-                        <label class="input-label" data-i18n="feedback.textLabel">文字回饋</label>
-                        <textarea 
-                            id="combinedFeedbackText" 
-                            class="text-input" 
-                            data-i18n-placeholder="feedback.detailedPlaceholder"
-                            placeholder="請在這裡輸入您的回饋..."
-                            style="min-height: 150px;"
-                        ></textarea>
-                    </div>
-
-                    <div class="input-group">
-                        <label class="input-label" data-i18n="feedback.imageLabel">圖片附件（可選）</label>
-                        <div id="combinedImageUploadArea" class="image-upload-area" style="min-height: 100px;">
-                            <div id="combinedImageUploadText" data-i18n="feedback.imageUploadText">
-                                📎 點擊選擇圖片或拖放圖片到此處<br>
-                                <small>支援 PNG、JPG、JPEG、GIF、BMP、WebP 等格式</small>
+                    <div class="settings-card-body">
+                        <div class="setting-item" style="border-bottom: none;">
+                            <div class="setting-info">
+                                <div class="setting-label" data-i18n="settings.reset">重置設定</div>
+                                <div class="setting-description" data-i18n="settings.resetDesc">
+                                    清除所有已保存的設定，恢復到預設狀態
+                                </div>
                             </div>
-                            <div id="combinedImagePreviewContainer" class="image-preview-container"></div>
-                            <input type="file" id="combinedImageInput" multiple accept="image/*" style="display: none;">
+                            <button id="resetSettingsBtn" class="btn btn-secondary" style="font-size: 12px; padding: 6px 16px;">
+                                <span data-i18n="settings.reset">重置設定</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -992,12 +1513,25 @@
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
-        // 初始化頁面
-        document.addEventListener('DOMContentLoaded', function() {
-            // 初始化 WebSocket 連接
+        // 等待 I18nManager 初始化完成後再初始化 FeedbackApp
+        async function initializeApp() {
             const sessionId = '{{ session_id }}';
+
+            // 確保 I18nManager 已經初始化
+            if (window.i18nManager) {
+                await window.i18nManager.init();
+            }
+
+            // 初始化 FeedbackApp
             window.feedbackApp = new FeedbackApp(sessionId);
-        });
+        }
+
+        // 頁面載入完成後初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
     </script>
 </body>
 </html> 
